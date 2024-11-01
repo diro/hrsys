@@ -32,7 +32,7 @@ jobs:
           chmod 600 /tmp/ssh_key
           
           # 将 Docker 镜像打包并传输到 EC2
-          docker save my-go-app | ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "docker load"
+          docker save hrsys | ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "docker load"
           
           # 在 EC2 上运行新容器
           ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << EOF
