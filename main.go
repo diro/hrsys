@@ -45,7 +45,7 @@ func main() {
 		err := db.Ping()
 		if err != nil {
 			http.Error(w, "数据库连接失败: "+err.Error(), http.StatusInternalServerError)
-			return
+			//	return
 		}
 
 		// 获取数据库统计信息
