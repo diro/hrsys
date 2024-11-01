@@ -72,8 +72,7 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Hello, World!")
-		fmt.Fprint(w, dbURI)
-		fmt.Fprintf(w, "dbUser: %s -- end", dbUser)
+		fmt.Fprintf(w, "dbUser: %s", dbUser)
 	})
 
 	http.HandleFunc("/dbinfo", func(w http.ResponseWriter, r *http.Request) {
