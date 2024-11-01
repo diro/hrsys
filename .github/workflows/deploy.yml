@@ -1,0 +1,42 @@
+# .github/workflows/deploy.yml
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main  # 在推送到 main 分支时触发部署流程
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 检出代码
+      - name: Check out the code
+        uses: actions/checkout@v2
+
+      # 2. 设置 Docker 环境并构建 Docker 镜像
+      - name: Build Docker image
+        run: |
+          docker build -t hrsys .
+
+      # 3. 使用 SSH 连接 EC2，并推送新的 Docker 镜像
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}           # EC2 的 IP 地址
+          EC2_USER: ec2-user                           # EC2 用户名（通常为 ec2-user）
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}  # EC2 的 SSH 私钥
+        run: |
+          # 配置 SSH 连接
+          echo "${SSH_PRIVATE_KEY}" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+          
+          # 将 Docker 镜像打包并传输到 EC2
+          docker save my-go-app | ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "docker load"
+          
+          # 在 EC2 上运行新容器
+          ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << EOF
+            docker stop my-go-container || true
+            docker rm my-go-container || true
+            docker run -d --name my-go-container -p 80:8080 my-go-app
+          EOF
