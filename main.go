@@ -2,11 +2,14 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	_ "github.com/lib/pq" // 改用 PostgreSQL 驱动
 )
 
@@ -15,15 +18,43 @@ const (
 	dbPort = "5432"
 )
 
-func main() {
-	// 从环境变量获取数据库凭据
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
+func getDBCredentials(secretName string, region string) (string, string, string, error) {
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String(region)},
+	)
+	if err != nil {
+		return "", "", "", err
+	}
 
-	// 检查必要的环境变量是否存在
-	if dbUser == "" || dbPassword == "" || dbName == "" {
-		log.Println("必要的数据库环境变量未设置 (DB_USER, DB_PASSWORD, DB_NAME)")
+	svc := secretsmanager.New(sess)
+	input := &secretsmanager.GetSecretValueInput{
+		SecretId: aws.String(secretName),
+	}
+
+	result, err := svc.GetSecretValue(input)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	var secretString string
+	if result.SecretString != nil {
+		secretString = *result.SecretString
+	}
+
+	var secretMap map[string]string
+	err = json.Unmarshal([]byte(secretString), &secretMap)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return secretMap["username"], secretMap["password"], secretMap["dbname"], nil
+}
+
+func main() {
+	// 从 Secrets Manager 获取数据库凭据
+	dbUser, dbPassword, dbName, err := getDBCredentials("rds!cluster-6de70cb9-03ec-43aa-b93c-06f9ea68965d", "us-west-2")
+	if err != nil {
+		log.Fatalf("无法获取数据库凭据: %v", err)
 	}
 
 	// 構建連接字符串
@@ -37,8 +68,8 @@ func main() {
 	defer db.Close()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, World!")
-		fmt.Fprintf(w, dbURI)
+		fmt.Fprint(w, "Hello, World!")
+		fmt.Fprint(w, dbURI)
 		fmt.Fprintf(w, "dbUser: %s -- end", dbUser)
 	})
 
