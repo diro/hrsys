@@ -23,7 +23,7 @@ func main() {
 
 	// 检查必要的环境变量是否存在
 	if dbUser == "" || dbPassword == "" || dbName == "" {
-		log.Warning("必要的数据库环境变量未设置 (DB_USER, DB_PASSWORD, DB_NAME)")
+		log.Println("必要的数据库环境变量未设置 (DB_USER, DB_PASSWORD, DB_NAME)")
 	}
 
 	// 構建連接字符串
@@ -32,7 +32,7 @@ func main() {
 
 	db, err := sql.Open("postgres", dbURI)
 	if err != nil {
-		log.Warning(err)
+		log.Println(err)
 	}
 	defer db.Close()
 
