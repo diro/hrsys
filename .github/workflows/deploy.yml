@@ -18,7 +18,7 @@ jobs:
       # 2. 设置 Docker 环境并构建 Docker 镜像
       - name: Build Docker image
         run: |
-          docker build -t hrsys .
+          docker build -t hrsys_container .
 
       # 3. 使用 SSH 连接 EC2，并推送新的 Docker 镜像
       - name: Deploy to EC2
@@ -36,7 +36,7 @@ jobs:
           
           # 在 EC2 上运行新容器
           ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << EOF
-            docker stop my-go-container || true
-            docker rm my-go-container || true
-            docker run -d --name my-go-container -p 80:8080 my-go-app
+            docker stop hrsys_container || true
+            docker rm hrsys_container || true
+            docker run -d --name hrsys_container -p 80:8080 hrsys_container
           EOF
