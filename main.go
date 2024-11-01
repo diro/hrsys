@@ -38,6 +38,8 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello, World!")
+		fmt.Fprintf(w, dbURI)
+		fmt.Fprintf(w, "dbUser: %s -- end", dbUser)
 	})
 
 	http.HandleFunc("/dbinfo", func(w http.ResponseWriter, r *http.Request) {
