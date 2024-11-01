@@ -77,31 +77,36 @@ func main() {
 
 	http.HandleFunc("/dbinfo", func(w http.ResponseWriter, r *http.Request) {
 		// 测试数据库连接
-		err := db.Ping()
-		if err != nil {
-			http.Error(w, "数据库连接失败: "+err.Error(), http.StatusInternalServerError)
-			//	return
-		}
-
+		//	return
 		// 获取数据库统计信息
-		stats := db.Stats()
-
 		// 构建响应信息
-		info := fmt.Sprintf(`数据库连接信息:
+		showDBInfo(db, w, dbName)
+	})
+
+	log.Println("Server is running on port 8080...")
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func showDBInfo(db *sql.DB, w http.ResponseWriter, dbName string) {
+	err := db.Ping()
+	if err != nil {
+		http.Error(w, "数据库连接失败: "+err.Error(), http.StatusInternalServerError)
+
+	}
+
+	stats := db.Stats()
+
+	info := fmt.Sprintf(`数据库连接信息:
 			主机: %s
 			端口: %s
 			数据库名: %s
 			打开的连接数: %d
 			使用中的连接数: %d
 			空闲连接数: %d`,
-			dbHost, dbPort, dbName,
-			stats.OpenConnections,
-			stats.InUse,
-			stats.Idle)
+		dbHost, dbPort, dbName,
+		stats.OpenConnections,
+		stats.InUse,
+		stats.Idle)
 
-		fmt.Fprintf(w, info)
-	})
-
-	log.Println("Server is running on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Fprintf(w, info)
 }
