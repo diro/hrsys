@@ -56,13 +56,13 @@ func fetchDBCredentials(secretName, region string) (username, password, dbName s
 }
 
 func main() {
-	// 从 Secrets Manager 获取数据库凭据
+	// Fetch database credentials from Secrets Manager
 	dbUser, dbPassword, dbName, err := fetchDBCredentials(secretName, region)
 	if err != nil {
-		log.Fatalf("无法获取数据库凭据: %v", err)
+		log.Fatalf("Unable to fetch database credentials: %v", err)
 	}
 
-	// 构建连接字符串
+	// Construct connection string
 	dbURI := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=require",
 		dbUser, dbPassword, dbHost, dbPort, dbName)
 
@@ -88,19 +88,19 @@ func main() {
 func displayDBInfo(db *sql.DB, w http.ResponseWriter, dbName string) {
 	err := db.Ping()
 	if err != nil {
-		http.Error(w, "数据库连接失败: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Database connection failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	stats := db.Stats()
 
-	info := fmt.Sprintf(`数据库连接信息:
-			主机: %s
-			端口: %s
-			数据库名: %s
-			打开的连接数: %d
-			使用中的连接数: %d
-			空闲连接数: %d`,
+	info := fmt.Sprintf(`Database connection info:
+			Host: %s
+			Port: %s
+			Database name: %s
+			Open connections: %d
+			In use connections: %d
+			Idle connections: %d`,
 		dbHost, dbPort, dbName,
 		stats.OpenConnections,
 		stats.InUse,
