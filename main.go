@@ -23,6 +23,7 @@ func getDBCredentials(secretName string, region string) (string, string, string,
 		Region: aws.String(region)},
 	)
 	if err != nil {
+		log.Println(err)
 		return "", "", "", err
 	}
 
@@ -33,6 +34,7 @@ func getDBCredentials(secretName string, region string) (string, string, string,
 
 	result, err := svc.GetSecretValue(input)
 	if err != nil {
+		log.Println(err)
 		return "", "", "", err
 	}
 
@@ -44,6 +46,7 @@ func getDBCredentials(secretName string, region string) (string, string, string,
 	var secretMap map[string]string
 	err = json.Unmarshal([]byte(secretString), &secretMap)
 	if err != nil {
+		log.Println(err)
 		return "", "", "", err
 	}
 
