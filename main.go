@@ -78,9 +78,19 @@ func createTable(db *sql.DB) {
 }
 
 func createDB(db *sql.DB) {
-	_, err := db.Exec("CREATE DATABASE IF NOT EXISTS lifeplan")
+	// 检查数据库是否存在
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = 'lifeplan')").Scan(&exists)
 	if err != nil {
-		log.Println("Error creating database:", err)
+		log.Println("Error checking if database exists:", err)
+		return
+	}
+
+	if !exists {
+		_, err := db.Exec("CREATE DATABASE lifeplan")
+		if err != nil {
+			log.Println("Error creating database:", err)
+		}
 	}
 }
 
