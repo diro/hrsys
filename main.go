@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -86,6 +87,7 @@ func main() {
 	}
 
 	createTable(db)
+	insertMockData(db)
 
 	defer db.Close()
 
@@ -96,6 +98,7 @@ func main() {
 
 	http.HandleFunc("/dbinfo", func(w http.ResponseWriter, r *http.Request) {
 		displayDBInfo(db, w, dbName)
+		displayTableInfo(db, w)
 	})
 
 	log.Println("Server is running on port 8080...")
@@ -124,4 +127,39 @@ func displayDBInfo(db *sql.DB, w http.ResponseWriter, dbName string) {
 		stats.Idle)
 
 	fmt.Fprintf(w, info)
+}
+
+func insertMockData(db *sql.DB) {
+	// 定义 randomThingName 函数
+	randomThingName := func() string {
+		randomThings := []string{"tennis", "get married", "buy a house"}
+		return randomThings[rand.Intn(len(randomThings))] // 返回一个随机选择的示例值
+	}
+
+	_, err := db.Exec("INSERT INTO learning (name, year, bigthing, learned) VALUES ($1, $2, $3, $4)", "diro", 2022, randomThingName(), "mock")
+	if err != nil {
+		log.Println("Error inserting mock data:", err)
+	}
+}
+
+func displayTableInfo(db *sql.DB, id int, w http.ResponseWriter) {
+	rows, err := db.Query("SELECT * FROM learning WHERE id = $1", id)
+	if err != nil {
+		http.Error(w, "Error querying database: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close() // 确保在使用后关闭 rows
+
+	// 处理查询结果
+	for rows.Next() {
+		var name string
+		var year int
+		var bigthing, learned string
+		if err := rows.Scan(&id, &name, &year, &bigthing, &learned); err != nil {
+			http.Error(w, "Error scanning row: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		fmt.Fprintf(w, "ID: %d, Name: %s, Year: %d, Bigthing: %s, Learned: %s\n", id, name, year, bigthing, learned)
+	}
+	// ... 处理未处理的错误
 }
