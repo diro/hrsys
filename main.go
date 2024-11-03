@@ -98,7 +98,7 @@ func main() {
 
 	http.HandleFunc("/dbinfo", func(w http.ResponseWriter, r *http.Request) {
 		displayDBInfo(db, w, dbName)
-		displayTableInfo(db, w)
+		displayTableInfo(db, 1, w)
 	})
 
 	log.Println("Server is running on port 8080...")
