@@ -60,7 +60,7 @@ func fetchDBCredentials(secretName, region string) (username, password, dbName s
 func createTable(db *sql.DB) {
 	var err error
 	//select db
-	_, err = db.Exec("USE lifeplan")
+	_, err = db.Exec("SELECT lifeplan")
 	if err != nil {
 		log.Println("Error selecting database:", err)
 	}
