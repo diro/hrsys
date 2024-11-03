@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -92,7 +93,7 @@ func main() {
 
 	// Construct connection string
 	dbURI := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=require",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
+		dbUser, url.QueryEscape(dbPassword), dbHost, dbPort, dbName)
 
 	db, err := sql.Open("postgres", dbURI)
 	if err != nil {
