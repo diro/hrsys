@@ -58,6 +58,12 @@ func fetchDBCredentials(secretName, region string) (username, password, dbName s
 
 func createTable(db *sql.DB) {
 	var err error
+	//select db
+	_, err = db.Exec("USE lifeplan")
+	if err != nil {
+		log.Println("Error selecting database:", err)
+	}
+
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS learning (
 		id SERIAL PRIMARY KEY,
 		name VARCHAR(255) NOT NULL,
@@ -67,6 +73,13 @@ func createTable(db *sql.DB) {
 	)`)
 	if err != nil {
 		log.Println("Error creating table:", err)
+	}
+}
+
+func createDB(db *sql.DB) {
+	_, err := db.Exec("CREATE DATABASE IF NOT EXISTS lifeplan")
+	if err != nil {
+		log.Println("Error creating database:", err)
 	}
 }
 
@@ -85,7 +98,7 @@ func main() {
 	if err != nil {
 		log.Println("Error opening database connection:", err)
 	}
-
+	createDB(db)
 	createTable(db)
 	insertMockData(db)
 
