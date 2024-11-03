@@ -55,6 +55,20 @@ func fetchDBCredentials(secretName, region string) (username, password, dbName s
 	return secretMap["username"], secretMap["password"], secretMap["dbname"], nil
 }
 
+func createTable(db *sql.DB) {
+	var err error
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS learning (
+		id SERIAL PRIMARY KEY,
+		name VARCHAR(255) NOT NULL,
+		year INTEGER NOT NULL,
+		bigthing TEXT NOT NULL,
+		learned TEXT NOT NULL
+	)`)
+	if err != nil {
+		log.Println("Error creating table:", err)
+	}
+}
+
 func main() {
 	// Fetch database credentials from Secrets Manager
 	dbUser, dbPassword, dbName, err := fetchDBCredentials(secretName, region)
@@ -70,6 +84,9 @@ func main() {
 	if err != nil {
 		log.Println("Error opening database connection:", err)
 	}
+
+	createTable(db)
+
 	defer db.Close()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
