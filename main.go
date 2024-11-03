@@ -167,15 +167,10 @@ func insertMockData(db *sql.DB) {
 }
 
 func displayTableInfo(db *sql.DB, id int, w http.ResponseWriter) {
-	// 选择数据库
-	_, err := db.Exec("SET search_path TO lifeplan")
-	if err != nil {
-		log.Println("Error selecting database:", err)
-	}
 
 	// 查询表
 
-	rows, err := db.Query("SELECT * FROM learning") // WHERE id = $1", id)
+	rows, err := db.Query("SELECT * FROM lifespan.learning") // WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Error querying database: "+err.Error(), http.StatusInternalServerError)
 		return
