@@ -57,15 +57,23 @@ func fetchDBCredentials(secretName, region string) (username, password, dbName s
 	return secretMap["username"], secretMap["password"], secretMap["dbname"], nil
 }
 
-func createTable(db *sql.DB) {
-	var err error
-	//select db
-	_, err = db.Exec("SELECT * FROM lifeplan")
+func createDB(db *sql.DB) error {
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = 'lifeplan')").Scan(&exists)
 	if err != nil {
-		log.Println("Error selecting database:", err)
+		return fmt.Errorf("Error checking if database exists: %w", err)
 	}
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS learning (
+	if !exists {
+		if _, err := db.Exec("CREATE DATABASE lifeplan"); err != nil {
+			return fmt.Errorf("Error creating database: %w", err)
+		}
+	}
+	return nil
+}
+
+func createTable(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS learning (
 		id SERIAL PRIMARY KEY,
 		name VARCHAR(255) NOT NULL,
 		year INTEGER NOT NULL,
@@ -73,47 +81,35 @@ func createTable(db *sql.DB) {
 		learned TEXT NOT NULL
 	)`)
 	if err != nil {
-		log.Println("Error creating table:", err)
+		return fmt.Errorf("Error creating table: %w", err)
 	}
-}
-
-func createDB(db *sql.DB) {
-	// 检查数据库是否存在
-	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = 'lifeplan')").Scan(&exists)
-	if err != nil {
-		log.Println("Error checking if database exists:", err)
-		return
-	}
-
-	if !exists {
-		_, err := db.Exec("CREATE DATABASE lifeplan")
-		if err != nil {
-			log.Println("Error creating database:", err)
-		}
-	}
+	return nil
 }
 
 func main() {
-	// Fetch database credentials from Secrets Manager
 	dbUser, dbPassword, dbName, err := fetchDBCredentials(secretName, region)
 	if err != nil {
 		log.Fatalf("Unable to fetch database credentials: %v", err)
 	}
 
-	// Construct connection string
 	dbURI := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=require",
 		dbUser, url.QueryEscape(dbPassword), dbHost, dbPort, dbName)
 
 	db, err := sql.Open("postgres", dbURI)
 	if err != nil {
-		log.Println("Error opening database connection:", err)
+		log.Fatalf("Error opening database connection: %v", err)
 	}
-	createDB(db)
-	createTable(db)
-	insertMockData(db)
-
 	defer db.Close()
+
+	if err := createDB(db); err != nil {
+		log.Fatalf("Failed to create database: %v", err)
+	}
+
+	if err := createTable(db); err != nil {
+		log.Fatalf("Failed to create table: %v", err)
+	}
+
+	insertMockData(db)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Hello, World!")
@@ -130,14 +126,12 @@ func main() {
 }
 
 func displayDBInfo(db *sql.DB, w http.ResponseWriter, dbName string) {
-	err := db.Ping()
-	if err != nil {
+	if err := db.Ping(); err != nil {
 		http.Error(w, "Database connection failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	stats := db.Stats()
-
 	info := fmt.Sprintf(`Database connection info:
 			Host: %s
 			Port: %s
@@ -154,10 +148,9 @@ func displayDBInfo(db *sql.DB, w http.ResponseWriter, dbName string) {
 }
 
 func insertMockData(db *sql.DB) {
-	// 定义 randomThingName 函数
 	randomThingName := func() string {
 		randomThings := []string{"tennis", "get married", "buy a house"}
-		return randomThings[rand.Intn(len(randomThings))] // 返回一个随机选择的示例值
+		return randomThings[rand.Intn(len(randomThings))]
 	}
 
 	_, err := db.Exec("INSERT INTO learning (name, year, bigthing, learned) VALUES ($1, $2, $3, $4)", "diro", 2022, randomThingName(), "mock")
@@ -167,17 +160,13 @@ func insertMockData(db *sql.DB) {
 }
 
 func displayTableInfo(db *sql.DB, id int, w http.ResponseWriter) {
-
-	// 查询表
-
-	rows, err := db.Query("SELECT * FROM lifespan.learning") // WHERE id = $1", id)
+	rows, err := db.Query("SELECT * FROM learning") // 确保查询的是正确的表
 	if err != nil {
 		http.Error(w, "Error querying database: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close() // 确保在使用后关闭 rows
+	defer rows.Close()
 
-	// 处理查询结果
 	for rows.Next() {
 		var name string
 		var year int
@@ -188,5 +177,4 @@ func displayTableInfo(db *sql.DB, id int, w http.ResponseWriter) {
 		}
 		fmt.Fprintf(w, "ID: %d, Name: %s, Year: %d, Bigthing: %s, Learned: %s\n", id, name, year, bigthing, learned)
 	}
-	// ... 处理未处理的错误
 }
